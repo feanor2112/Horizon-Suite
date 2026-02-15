@@ -36,7 +36,7 @@ local Def = {
 }
 Def.BorderColor = Def.SectionCardBorder
 
-local _activeColorPickerCallbacks = nil  -- { setKeyVal, notify, tex } when our picker is open
+local _activeColorPickerCallbacks = nil -- { setKeyVal, notify, tex } when our picker is open
 local _hexBoxHooked = false
 
 function _G.OptionsWidgets_SetDef(overrides)
@@ -80,7 +80,7 @@ function OptionsWidgets_CreateToggleSwitch(parent, labelText, description, get, 
     local thumb = track:CreateTexture(nil, "OVERLAY")
     thumb:SetSize(thumbSize, thumbSize)
     thumb:SetColorTexture(Def.ThumbColor[1], Def.ThumbColor[2], Def.ThumbColor[3], Def.ThumbColor[4])
-    thumb:SetPoint("CENTER", track, "LEFT", TOGGLE_INSET + thumbSize/2, 0)
+    thumb:SetPoint("CENTER", track, "LEFT", TOGGLE_INSET + thumbSize / 2, 0)
 
     local label = row:CreateFontString(nil, "OVERLAY")
     label:SetFont(Def.FontPath, Def.LabelSize, "OUTLINE")
@@ -112,7 +112,7 @@ function OptionsWidgets_CreateToggleSwitch(parent, labelText, description, get, 
     local thumbTravel = fillW - thumbSize
     local function updateVisuals(t)
         thumb:ClearAllPoints()
-        thumb:SetPoint("CENTER", track, "LEFT", TOGGLE_INSET + thumbSize/2 + t * thumbTravel, 0)
+        thumb:SetPoint("CENTER", track, "LEFT", TOGGLE_INSET + thumbSize / 2 + t * thumbTravel, 0)
         trackFill:SetWidth(t * fillW)
     end
 
@@ -239,7 +239,7 @@ function OptionsWidgets_CreateSlider(parent, labelText, description, get, set, m
         v = math.max(minVal, math.min(maxVal, v))
         local n = valueToNorm(v)
         thumb:ClearAllPoints()
-        thumb:SetPoint("CENTER", track, "LEFT", SLIDER_TRACK_INSET + SLIDER_THUMB_SIZE/2 + n * thumbTravel, 0)
+        thumb:SetPoint("CENTER", track, "LEFT", SLIDER_TRACK_INSET + SLIDER_THUMB_SIZE / 2 + n * thumbTravel, 0)
         trackFill:SetWidth(n * fillWidth)
         edit:SetText(tostring(math.floor(v + 0.5)))
     end
@@ -346,7 +346,10 @@ function OptionsWidgets_CreateCustomDropdown(parent, labelText, description, opt
     end
 
     btn:SetScript("OnClick", function()
-        if list:IsShown() then closeList() return end
+        if list:IsShown() then
+            closeList()
+            return
+        end
         list:SetParent(UIParent)
         list:ClearAllPoints()
         list:SetPoint("TOPLEFT", btn, "BOTTOMLEFT", 0, -2)
@@ -378,7 +381,7 @@ function OptionsWidgets_CreateCustomDropdown(parent, labelText, description, opt
             local value = opt[2]
             local b = children[i]
             if b then
-                b:SetPoint("TOP", list, "TOP", 0, -(i-1)*rowH)
+                b:SetPoint("TOP", list, "TOP", 0, -(i - 1) * rowH)
                 b.text:SetText(name)
                 b:SetScript("OnClick", function()
                     setValue(value, name)
@@ -528,13 +531,17 @@ function OptionsWidgets_CreateColorSwatchRow(parent, anchor, labelText, defaultT
         if tbl and tbl[1] then r, g, b = tbl[1], tbl[2], tbl[3] end
         tex:SetColorTexture(r, g, b, 1)
     end
+
     swatch:SetScript("OnClick", function()
         local r, g, b = def[1], def[2], def[3]
         local tbl = getTbl and getTbl()
         if tbl and tbl[1] then r, g, b = tbl[1], tbl[2], tbl[3] end
         _activeColorPickerCallbacks = { setKeyVal = setKeyVal, notify = notify, tex = tex }
         ColorPickerFrame:SetupColorPickerAndShow({
-            r = r, g = g, b = b, hasOpacity = false,
+            r = r,
+            g = g,
+            b = b,
+            hasOpacity = false,
             swatchFunc = function()
                 local nr, ng, nb = GetColorPickerEffectiveRGB()
                 setKeyVal({ nr, ng, nb })
@@ -879,7 +886,8 @@ function OptionsWidgets_CreateReorderList(parent, anchor, opt, scrollFrameRef, p
         if scrollFrameRef then
             local vh = scrollFrameRef:GetHeight()
             local cur = scrollFrameRef:GetVerticalScroll()
-            local maxScroll = math.max((scrollFrameRef:GetScrollChild() and scrollFrameRef:GetScrollChild():GetHeight() or 0) - vh, 0)
+            local maxScroll = math.max(
+            (scrollFrameRef:GetScrollChild() and scrollFrameRef:GetScrollChild():GetHeight() or 0) - vh, 0)
             local sy = select(2, GetCursorPosition()) / (scrollFrameRef:GetEffectiveScale() or 1)
             local sfBottom = scrollFrameRef:GetBottom()
             local sfTop = scrollFrameRef:GetTop()
@@ -954,6 +962,7 @@ function OptionsWidgets_CreateReorderList(parent, anchor, opt, scrollFrameRef, p
         if type(newKeys) == "function" then newKeys = newKeys() end
         if type(newKeys) == "table" then repositionRows(newKeys) end
     end
+
     return container
 end
 
