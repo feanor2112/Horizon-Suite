@@ -891,10 +891,10 @@ function OptionsWidgets_CreateReorderList(parent, anchor, opt, scrollFrameRef, p
             local sy = select(2, GetCursorPosition()) / (scrollFrameRef:GetEffectiveScale() or 1)
             local sfBottom = scrollFrameRef:GetBottom()
             local sfTop = scrollFrameRef:GetTop()
-            if sfTop and sy > sfTop - REORDER_AUTOSCROLL_MARGIN and maxScroll > 0 then
-                scrollFrameRef:SetVerticalScroll(math.min(cur + REORDER_AUTOSCROLL_STEP, maxScroll))
-            elseif sfBottom and sy < sfBottom + REORDER_AUTOSCROLL_MARGIN and cur > 0 then
+            if sfTop and sy > sfTop - REORDER_AUTOSCROLL_MARGIN and cur > 0 then
                 scrollFrameRef:SetVerticalScroll(math.max(cur - REORDER_AUTOSCROLL_STEP, 0))
+            elseif sfBottom and sy < sfBottom + REORDER_AUTOSCROLL_MARGIN and maxScroll > 0 then
+                scrollFrameRef:SetVerticalScroll(math.min(cur + REORDER_AUTOSCROLL_STEP, maxScroll))
             end
         end
     end
