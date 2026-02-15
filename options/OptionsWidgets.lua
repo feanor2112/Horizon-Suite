@@ -36,7 +36,7 @@ local Def = {
 }
 Def.BorderColor = Def.SectionCardBorder
 
-local _activeColorPickerCallbacks = nil -- { setKeyVal, notify, tex } when our picker is open
+local _activeColorPickerCallbacks = nil  -- { setKeyVal, notify, tex } when our picker is open
 local _hexBoxHooked = false
 
 function _G.OptionsWidgets_SetDef(overrides)
@@ -80,7 +80,7 @@ function OptionsWidgets_CreateToggleSwitch(parent, labelText, description, get, 
     local thumb = track:CreateTexture(nil, "OVERLAY")
     thumb:SetSize(thumbSize, thumbSize)
     thumb:SetColorTexture(Def.ThumbColor[1], Def.ThumbColor[2], Def.ThumbColor[3], Def.ThumbColor[4])
-    thumb:SetPoint("CENTER", track, "LEFT", TOGGLE_INSET + thumbSize / 2, 0)
+    thumb:SetPoint("CENTER", track, "LEFT", TOGGLE_INSET + thumbSize/2, 0)
 
     local label = row:CreateFontString(nil, "OVERLAY")
     label:SetFont(Def.FontPath, Def.LabelSize, "OUTLINE")
@@ -112,7 +112,7 @@ function OptionsWidgets_CreateToggleSwitch(parent, labelText, description, get, 
     local thumbTravel = fillW - thumbSize
     local function updateVisuals(t)
         thumb:ClearAllPoints()
-        thumb:SetPoint("CENTER", track, "LEFT", TOGGLE_INSET + thumbSize / 2 + t * thumbTravel, 0)
+        thumb:SetPoint("CENTER", track, "LEFT", TOGGLE_INSET + thumbSize/2 + t * thumbTravel, 0)
         trackFill:SetWidth(t * fillW)
     end
 
@@ -239,7 +239,7 @@ function OptionsWidgets_CreateSlider(parent, labelText, description, get, set, m
         v = math.max(minVal, math.min(maxVal, v))
         local n = valueToNorm(v)
         thumb:ClearAllPoints()
-        thumb:SetPoint("CENTER", track, "LEFT", SLIDER_TRACK_INSET + SLIDER_THUMB_SIZE / 2 + n * thumbTravel, 0)
+        thumb:SetPoint("CENTER", track, "LEFT", SLIDER_TRACK_INSET + SLIDER_THUMB_SIZE/2 + n * thumbTravel, 0)
         trackFill:SetWidth(n * fillWidth)
         edit:SetText(tostring(math.floor(v + 0.5)))
     end
@@ -347,8 +347,8 @@ function OptionsWidgets_CreateCustomDropdown(parent, labelText, description, opt
 
     btn:SetScript("OnClick", function()
         if list:IsShown() then
-            closeList()
-            return
+             closeList()
+             return
         end
         list:SetParent(UIParent)
         list:ClearAllPoints()
@@ -531,17 +531,13 @@ function OptionsWidgets_CreateColorSwatchRow(parent, anchor, labelText, defaultT
         if tbl and tbl[1] then r, g, b = tbl[1], tbl[2], tbl[3] end
         tex:SetColorTexture(r, g, b, 1)
     end
-
     swatch:SetScript("OnClick", function()
         local r, g, b = def[1], def[2], def[3]
         local tbl = getTbl and getTbl()
         if tbl and tbl[1] then r, g, b = tbl[1], tbl[2], tbl[3] end
         _activeColorPickerCallbacks = { setKeyVal = setKeyVal, notify = notify, tex = tex }
         ColorPickerFrame:SetupColorPickerAndShow({
-            r = r,
-            g = g,
-            b = b,
-            hasOpacity = false,
+            r = r, g = g, b = b, hasOpacity = false,
             swatchFunc = function()
                 local nr, ng, nb = GetColorPickerEffectiveRGB()
                 setKeyVal({ nr, ng, nb })
@@ -795,16 +791,66 @@ function OptionsWidgets_CreateReorderList(parent, anchor, opt, scrollFrameRef, p
         return line
     end
 
+    --- Compute insertion index from cursor Y using row screen bounds (avoids IsMouseOver quirks in scroll frames).
     local function getInsertionIndexFromCursor()
-        if #rows == 0 then return 1 end
-        for i = 1, #rows do
-            if rows[i]:IsMouseOver() then return i end
+    local activeRows = state.rows
+    if not activeRows or #activeRows == 0 then return 1 end
+        local _, cursorY = GetCursorPosition()
+        local scale = UIParent:GetEffectiveScale()
+        cursorY = cursorY / scale
+        for i = 1, #activeRows do
+            local row = activeRows[i]
+            local top = row:GetTop()
+            local bottom = row:GetBottom()
+
+            if top and bottom then
+                local mid = (top + bottom) / 2
+                if cursorY > mid then
+                    return i
+                end
+            end
         end
-        return #rows + 1
+        return #activeRows + 1
     end
 
+
+    local presetOrder = { "Collection Focused", "Quest Focused", "Campaign Focused", "World / Rare Focused" }
+    local presets = (opt.presets and addon.GROUP_ORDER_PRESETS) and opt.presets or nil
+    local presetRow = nil
+    if presets then
+        presetRow = CreateFrame("Frame", nil, container)
+        presetRow:SetHeight(26)
+        presetRow:SetPoint("TOPLEFT", sectionLabel, "BOTTOMLEFT", 0, -8)
+        presetRow:SetPoint("TOPRIGHT", container, "TOPRIGHT", -Def.CardPadding, 0)
+        local btnW, btnH, gap = 90, 22, 6
+        local prevBtn = nil
+        for _, name in ipairs(presetOrder) do
+            local presetOrderArr = presets[name]
+            if presetOrderArr then
+                local btn = CreateFrame("Button", nil, presetRow)
+                btn:SetSize(btnW, btnH)
+                btn:SetPoint("TOPLEFT", prevBtn and prevBtn or presetRow, prevBtn and "TOPRIGHT" or "TOPLEFT", prevBtn and gap or 0, 0)
+                prevBtn = btn
+                local lab = btn:CreateFontString(nil, "OVERLAY")
+                lab:SetFont(Def.FontPath, Def.LabelSize - 1, "OUTLINE")
+                SetTextColor(lab, Def.TextColorLabel)
+                lab:SetText(name:gsub(" / Rare", "/Rare"))
+                lab:SetPoint("CENTER", btn, "CENTER", 0, 0)
+                lab:SetWordWrap(false)
+                btn:SetScript("OnClick", function()
+                    if opt.set then opt.set(presetOrderArr) end
+                    if container.Refresh then container:Refresh() end
+                    if notifyMainAddonFn then notifyMainAddonFn() end
+                end)
+                btn:SetScript("OnEnter", function() SetTextColor(lab, Def.TextColorHighlight) end)
+                btn:SetScript("OnLeave", function() SetTextColor(lab, Def.TextColorLabel) end)
+            end
+        end
+    end
+
+    local rowListAnchor = presetRow or sectionLabel
     local function repositionRows(orderedKeys)
-        local prev = sectionLabel
+        local prev = rowListAnchor
         for i, key in ipairs(orderedKeys) do
             local row = keyToRow[key]
             if row then
@@ -830,76 +876,95 @@ function OptionsWidgets_CreateReorderList(parent, anchor, opt, scrollFrameRef, p
     end
 
     local function applyReorderAndCleanup()
-        if not state.active or not state.rows or #state.rows == 0 then return end
+    if not state.active or not state.rows or #state.rows == 0 then return end
+
         panelRef:SetScript("OnUpdate", nil)
         state.active = false
+
         local fromIdx = state.sourceIndex
         local toIdx = state.targetIndex or fromIdx
+
         if state.ghostFrame then state.ghostFrame:Hide() end
-        if state.insertionLine then state.insertionLine:Hide() end
-        if state.sourceRow then state.sourceRow:SetAlpha(1) end
-        if toIdx == fromIdx then return end
-        local orderedKeys = {}
-        for i, row in ipairs(state.rows) do orderedKeys[i] = row.key end
-        local k = orderedKeys[fromIdx]
-        table.remove(orderedKeys, fromIdx)
-        local insertAt = (fromIdx < toIdx) and (toIdx - 1) or toIdx
-        table.insert(orderedKeys, insertAt, k)
-        state.set(orderedKeys)
-        repositionRows(orderedKeys)
-        if notifyMainAddonFn then notifyMainAddonFn() end
+            if state.insertionLine then state.insertionLine:Hide() end
+                if state.sourceRow then state.sourceRow:SetAlpha(1) end
+
+                    if toIdx == fromIdx then return end
+
+                        local orderedKeys = {}
+                        for i, row in ipairs(state.rows) do
+                            orderedKeys[i] = row.key
+                        end
+
+                        local key = orderedKeys[fromIdx]
+                        table.remove(orderedKeys, fromIdx)
+
+                        local insertAt = (fromIdx < toIdx) and (toIdx - 1) or toIdx
+                        table.insert(orderedKeys, insertAt, key)
+
+                        state.set(orderedKeys)
+                        repositionRows(orderedKeys)
+
+                        if notifyMainAddonFn then
+                            notifyMainAddonFn()
+                        end
     end
 
+
     local function onReorderUpdate()
-        if not state.active or not IsMouseButtonDown("LeftButton") then
-            applyReorderAndCleanup()
-            return
-        end
+    if not state.active or not IsMouseButtonDown("LeftButton") then
+        applyReorderAndCleanup() return end
+
         local ghost = ensureGhost()
         local line = ensureInsertionLine()
+
         local x, y = GetCursorPosition()
         local scale = UIParent:GetEffectiveScale()
-        if scale and scale > 0 then x, y = x / scale, y / scale end
+        x, y = x / scale, y / scale
+
         ghost:ClearAllPoints()
         ghost:SetPoint("CENTER", UIParent, "BOTTOMLEFT", x, y)
         ghost:Show()
-        if state.ghostLabel and state.sourceRow and state.sourceRow.label then
-            state.ghostLabel:SetText(state.sourceRow.label:GetText() or "")
-        end
+
         local insertIdx = getInsertionIndexFromCursor()
         state.targetIndex = insertIdx
-        if insertIdx <= #rows then
-            local ref = rows[insertIdx]
-            line:ClearAllPoints()
-            line:SetPoint("LEFT", ref, "LEFT", 0, 0)
-            line:SetPoint("RIGHT", ref, "RIGHT", 0, 0)
-            line:SetPoint("BOTTOM", ref, "TOP", 0, REORDER_ROW_GAP / 2)
-            line:Show()
-        elseif #rows > 0 then
-            local last = rows[#rows]
-            line:ClearAllPoints()
-            line:SetPoint("LEFT", last, "LEFT", 0, 0)
-            line:SetPoint("RIGHT", last, "RIGHT", 0, 0)
-            line:SetPoint("TOP", last, "BOTTOM", 0, -REORDER_ROW_GAP / 2)
-            line:Show()
-        end
-        if scrollFrameRef then
-            local vh = scrollFrameRef:GetHeight()
-            local cur = scrollFrameRef:GetVerticalScroll()
-            local maxScroll = math.max(
-            (scrollFrameRef:GetScrollChild() and scrollFrameRef:GetScrollChild():GetHeight() or 0) - vh, 0)
-            local sy = select(2, GetCursorPosition()) / (scrollFrameRef:GetEffectiveScale() or 1)
-            local sfBottom = scrollFrameRef:GetBottom()
-            local sfTop = scrollFrameRef:GetTop()
-            if sfTop and sy > sfTop - REORDER_AUTOSCROLL_MARGIN and cur > 0 then
-                scrollFrameRef:SetVerticalScroll(math.max(cur - REORDER_AUTOSCROLL_STEP, 0))
-            elseif sfBottom and sy < sfBottom + REORDER_AUTOSCROLL_MARGIN and maxScroll > 0 then
-                scrollFrameRef:SetVerticalScroll(math.min(cur + REORDER_AUTOSCROLL_STEP, maxScroll))
+
+        local activeRows = state.rows
+        if not activeRows or #activeRows == 0 then return end
+
+            if insertIdx <= #activeRows then
+                local ref = activeRows[insertIdx]
+                line:ClearAllPoints()
+                line:SetPoint("LEFT", ref, "LEFT", 0, 0)
+                line:SetPoint("RIGHT", ref, "RIGHT", 0, 0)
+                line:SetPoint("BOTTOM", ref, "TOP", 0, REORDER_ROW_GAP / 2)
+                line:Show()
+            else
+                local last = activeRows[#activeRows]
+                line:ClearAllPoints()
+                line:SetPoint("LEFT", last, "LEFT", 0, 0)
+                line:SetPoint("RIGHT", last, "RIGHT", 0, 0)
+                line:SetPoint("TOP", last, "BOTTOM", 0, -REORDER_ROW_GAP / 2)
+                line:Show()
             end
-        end
+
+            -- Auto scroll
+            if scrollFrameRef then
+                local sy = y
+                local sfTop = scrollFrameRef:GetTop()
+                local sfBottom = scrollFrameRef:GetBottom()
+                local cur = scrollFrameRef:GetVerticalScroll()
+                local vh = scrollFrameRef:GetHeight()
+                local maxScroll = math.max((scrollFrameRef:GetScrollChild():GetHeight() or 0) - vh, 0)
+
+                if sfTop and sy > sfTop - REORDER_AUTOSCROLL_MARGIN and cur > 0 then
+                    scrollFrameRef:SetVerticalScroll(math.max(cur - REORDER_AUTOSCROLL_STEP, 0))
+                elseif sfBottom and sy < sfBottom + REORDER_AUTOSCROLL_MARGIN and maxScroll > 0 then
+                    scrollFrameRef:SetVerticalScroll(math.min(cur + REORDER_AUTOSCROLL_STEP, maxScroll))
+                end
+            end
     end
 
-    local prevAnchor = sectionLabel
+    local prevAnchor = rowListAnchor
     for i, key in ipairs(keys) do
         local row = CreateFrame("Button", nil, container)
         row:SetSize(240, REORDER_ROW_HEIGHT)
@@ -933,6 +998,7 @@ function OptionsWidgets_CreateReorderList(parent, anchor, opt, scrollFrameRef, p
         end)
         rows[i] = row
     end
+    state.rows = rows
 
     local resetBtn = CreateFrame("Button", nil, container)
     state.resetBtn = resetBtn
@@ -941,7 +1007,7 @@ function OptionsWidgets_CreateReorderList(parent, anchor, opt, scrollFrameRef, p
     local resetLabel = resetBtn:CreateFontString(nil, "OVERLAY")
     resetLabel:SetFont(Def.FontPath, Def.LabelSize, "OUTLINE")
     SetTextColor(resetLabel, Def.TextColorLabel)
-    resetLabel:SetText("Reset order")
+    resetLabel:SetText("Reset to default")
     resetLabel:SetPoint("CENTER", resetBtn, "CENTER", 0, 0)
     resetBtn:SetScript("OnClick", function()
         if opt.set then opt.set(nil) end
@@ -954,7 +1020,8 @@ function OptionsWidgets_CreateReorderList(parent, anchor, opt, scrollFrameRef, p
     resetBtn:SetScript("OnEnter", function() SetTextColor(resetLabel, Def.TextColorHighlight) end)
     resetBtn:SetScript("OnLeave", function() SetTextColor(resetLabel, Def.TextColorLabel) end)
 
-    local totalH = Def.CardPadding + 14 + (#keys * (REORDER_ROW_HEIGHT + REORDER_ROW_GAP)) + 6 + 22 + Def.CardPadding
+    local presetH = presetRow and (8 + 26) or 0
+    local totalH = Def.CardPadding + 14 + presetH + (#keys * (REORDER_ROW_HEIGHT + REORDER_ROW_GAP)) + 6 + 22 + Def.CardPadding
     container:SetHeight(totalH)
     container.searchText = (opt.name or "order") .. " " .. (opt.desc or opt.tooltip or "")
     function container:Refresh()
@@ -962,7 +1029,6 @@ function OptionsWidgets_CreateReorderList(parent, anchor, opt, scrollFrameRef, p
         if type(newKeys) == "function" then newKeys = newKeys() end
         if type(newKeys) == "table" then repositionRows(newKeys) end
     end
-
     return container
 end
 
